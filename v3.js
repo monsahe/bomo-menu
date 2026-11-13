@@ -51,8 +51,8 @@
     '<div class="body cover" role="tabpanel" id="panel-inicio" aria-labelledby="tab-inicio">' +
       '<div class="cover-top">Menú</div>' +
       '<img class="receipt" src="assets/recibo.webp" width="692" height="1036" alt="Recibo de Bomo: pan con intención, horneado para ti" decoding="async">' +
-      (window.BOMO_SOON ? '<div class="postit"><span class="postit-tag">' + BOMO_SOON.tag + '</span><div class="postit-name">' + BOMO_SOON.n +
-        '</div>' + (BOMO_SOON.d ? '<p class="postit-d">' + BOMO_SOON.d + "</p>" : "") + "</div>" : "") +
+      (window.BOMO_SOON ? '<div class="postit"><div class="postit-row"><span class="postit-tag">' + BOMO_SOON.tag + '</span><span class="postit-name">' + BOMO_SOON.n +
+        '</span></div>' + (BOMO_SOON.d ? '<p class="postit-d">' + BOMO_SOON.d + "</p>" : "") + "</div>" : "") +
       '<div class="cover-logo"><h1 class="logo logo-img" id="logo">Bomo</h1></div>' +
     "</div>";
 

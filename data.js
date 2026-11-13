@@ -79,4 +79,4 @@ window.BOMO_MENU = [
 ];
 
 // Post-it de la portada (rojo vivo): lo que viene pronto
-window.BOMO_SOON = { tag: "Muy pronto", n: "Rosca de Reyes" };   // d: "..." (opcional) agrega una línea de descripción
+window.BOMO_SOON = { tag: "Próximamente", n: "Rosca de Reyes" };   // d: "..." (opcional) agrega una línea de descripción

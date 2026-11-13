@@ -3,6 +3,8 @@
   /* Paleta oficial de Bomo */
   --rojo: #F22613;      /* el color más llamativo: lo importante (hoja de Temporada) */
   --azul: #94BDF2;
+  --azul-fuerte: #1B6EDA;   /* el mismo azul (tono 214°, saturación 78 %) más oscuro: contraste 4.5:1 sobre #FFF5DE, para los subtítulos de Panes de mesa */
+  --amarillo: #FFF5DE;   /* amarillo claro: hoja de Panes de mesa */
   --oscuro: #260202;    /* muy oscuro: texto y fondo; sustituye al negro */
   --granate: #590505;   /* rojo profundo: fondo de la hoja de Bollería */
   --vino: #580604;      /* color del logo y del texto sobre azul (casi idéntico a --granate) */
@@ -120,8 +122,10 @@ body {
    --soft: 100 % = el texto de apoyo (descripciones, secciones) va a color pleno, sin suavizar. */
 .sheet[data-i="0"] { --c: var(--granate); --fg: var(--crema); --m: 20px; --r: 0deg;    --soft: 100%; --tex: url("assets/texturas/textura_portada-web.jpg"); }
 .sheet[data-i="1"] { --c: var(--azul);    --fg: var(--negro); --m: 22px; --r: .3deg;   --soft: 100%; --tex: url("assets/texturas/textura_temporada-web.jpg"); --acc: var(--vino); }
-.sheet[data-i="2"] { --c: var(--crema);   --fg: var(--negro); --m: 28px; --r: -.3deg;  --soft: 100%; --tex: url("assets/texturas/textura_bolleria-web.jpg"); }
-.sheet[data-i="3"] { --c: #E1E8CB;        --fg: var(--negro); --m: 36px; --r: .4deg;   --soft: 100%; --tex: url("assets/texturas/textura_mesa-web.jpg"); }
+/* Bollería: crema #FFFBF2; subtítulos circulados en azul fuerte (--sub). */
+.sheet[data-i="2"] { --c: var(--crema);   --fg: var(--negro); --m: 28px; --r: -.3deg;  --soft: 100%; --tex: url("assets/texturas/textura_bolleria-web.jpg"); --sub: var(--azul-fuerte); }
+/* Panes de mesa: amarillo claro (--amarillo, #FFF5DE); título rojo, subtítulos circulados en azul fuerte (--sub) y hover rojo. */
+.sheet[data-i="3"] { --c: var(--amarillo); --fg: var(--negro); --m: 36px; --r: .4deg;   --soft: 100%; --tex: url("assets/texturas/textura_mesa-web.jpg"); --sub: var(--azul-fuerte); }
 /* --acc: color de acento de la hoja (título y subtítulos con su círculo). Rojo vivo salvo en Temporada, que va en #580604. */
 
 /* Recibo arrugado: esquinado a la izquierda como las hojas, con su borde superior a la altura del de la portada (el clip lo sujeta) y DEBAJO del post-it (va antes en el HTML; la sombra ya viene dentro de la imagen) */
@@ -131,12 +135,13 @@ body {
   --rw: min(106%, calc((100svh - 168px - 24px - 84cqw) / 1.497));
   position: absolute; width: var(--rw); left: calc(var(--rw) * -.038); top: -12px; height: auto; pointer-events: none; -webkit-user-select: none; user-select: none; }
 
-/* Post-it "muy pronto": pegado en la portada, en rojo vivo */
+/* Post-it "próximamente": franja delgada pegada en la parte de arriba de la portada, en rojo.
+   Una sola fila como las de los precios: texto a la izquierda, texto a la derecha y todo subrayado. */
 .postit {
-  position: absolute; left: 0; top: 0; width: 64%; max-width: 190px;
-  padding: 36px var(--m) 14px; color: var(--crema);   /* los 36 px de arriba quedan bajo el broche, que baja unos 20 px dentro de la hoja */
+  position: absolute; left: 0; top: 0; width: max-content; max-width: 100%;   /* un papelito: del ancho de su texto */
+  padding: 30px 12px 9px; color: var(--crema);   /* los 30 px de arriba quedan bajo el broche, que baja unos 20 px dentro de la hoja */
   background: var(--rojo) url("assets/texturas/textura_pronto-web.jpg") center / cover;
-  border-radius: 2px 2px 3px 2px; transform: rotate(-.4deg); transform-origin: 0 0;
+  border-radius: 2px 2px 3px 2px; transform: rotate(-.2deg); transform-origin: 0 0;
   /* pegado, no flotando: sombra mínima y pegada al borde, casi solo una línea de contacto */
   box-shadow: 0 .5px 1px rgba(20,4,2,.38), 0 1.5px 3px rgba(20,4,2,.2);
 }
@@ -150,9 +155,11 @@ body {
   mix-blend-mode: multiply; opacity: .18;
 }
 .postit > * { position: relative; z-index: 1; }
-.postit-tag { display: inline-block; padding: 2px 6px 1px; font: var(--w-regular) 11px/1.15 var(--font-text); letter-spacing: .06em; text-transform: uppercase; border: 1.5px solid currentColor; border-radius: 999px; }
-.postit-name { margin-top: 12px; padding-bottom: 3px; border-bottom: var(--line) solid currentColor; font: var(--w-semibold) 14px/1.15 var(--font-text); text-transform: uppercase; }
-.postit-d { margin: 4px 0 0; font: var(--w-regular) 12px/1.3 var(--font-text); }
+.postit-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 26px; padding-bottom: 3px; border-bottom: var(--line) solid currentColor;
+  white-space: nowrap; text-transform: uppercase; font: var(--w-semibold) 12px/1.15 var(--font-text);
+}
+.postit-d { margin: 4px 0 0; font: var(--w-regular) 11px/1.3 var(--font-text); }
 
 /* Hojas ya pasadas: cuelgan arriba y solo asoma su borde inferior */
 .sheet[data-state="turned"] {
@@ -242,7 +249,7 @@ body {
   /* a la derecha se resta el espacio que el espaciado entre letras deja tras la última letra */
   padding: var(--pill-y) calc(var(--pill-x) - .06em) calc(var(--pill-y) - 1px) var(--pill-x);
   font: var(--w-regular) var(--fs-group)/1.15 var(--font-text);   /* más ligera que los nombres */
-  color: var(--acc, var(--rojo));   /* texto y círculo (el borde hereda el color) */
+  color: var(--sub, var(--acc, var(--rojo)));   /* texto y círculo (el borde hereda el color); --sub permite otro color solo para subtítulos */
   letter-spacing: .06em; text-transform: uppercase;
   border: 1.5px solid currentColor; border-radius: 999px;
 }
@@ -370,13 +377,13 @@ body {
   .receipt { --rw: min(106%, calc((100% - var(--m) - 22cqw - 10px) / .924), calc((100svh - 168px - var(--m) - 60px) / 1.497)); }
 }
 
-/* ---------- Solo celular (< 720 px): recibo un poco más grande y "Rosca de Reyes" del post-it en una sola línea ---------- */
+/* ---------- Solo celular (< 720 px): recibo un poco más grande y el post-it más compacto ---------- */
 @media (max-width: 719.98px) {
+  /* post-it: papelito compacto, letra de 9 px (baja más en pantallas muy angostas para que quepa: 26 caracteres a 0.6 em + 14 px de hueco + 20 px de márgenes) */
+  .postit { padding-left: 10px; padding-right: 10px; }
+  .postit-row { gap: 14px; font-size: min(9px, calc((100cqw + 2 * var(--m) - 34px) / 15.6)); }
   /* menos reserva sobre el logo (la esquina inferior derecha del recibo queda más arriba que la izquierda por la inclinación) */
   .receipt { --rw: min(106%, calc((100svh - 168px - 4px - 84cqw) / 1.497)); top: 2px; }   /* top: 2px = 14 px más abajo que en escritorio (-12px) */
-  .postit { width: 66%; max-width: 200px; padding: 36px 14px 14px; }
-  /* la letra se ajusta al ancho del post-it (cqw mide la portada sin sus márgenes interiores, de ahí el + 1.32 × --m) */
-  .postit-name { white-space: nowrap; font-size: min(14px, calc((66cqw + 1.32 * var(--m) - 28px) / 8.7)); }
 }
 
 /* ---------- Hover (solo con cursor; en el celular no existe) ----------
@@ -386,7 +393,7 @@ body {
   .sheet[data-state="behind"]:has(.tab:hover) { translate: 10px 0; }
   .sheet[data-state="turned"]:has(.tab:hover) { translate: -9px 0; }
   .item.has-view, .item.has-view .desc { transition: color .15s ease; }
-  .item.has-view:hover, .item.has-view:hover .desc { color: var(--acc, var(--rojo)); }
+  .item.has-view:hover, .item.has-view:hover .desc { color: var(--hov, var(--acc, var(--rojo))); }
 }
 
 /* ---------- Créditos (pie de la página) ---------- */
@@ -396,6 +403,18 @@ body {
 }
 .credits a { color: inherit; text-decoration: underline; text-underline-offset: 2px; text-decoration-color: rgba(255, 251, 242, .4); }
 @media (hover: hover) and (pointer: fine) { .credits a:hover { color: var(--crema); } }
+
+/* ---------- Movimiento leve: el recibo se mece un poco, como colgando del clip ----------
+   Solo decorativo (no lleva a ningún lado). El post-it "Próximamente" va quieto.
+   Se pausa cuando la portada no está al frente y se apaga con "reducir movimiento". */
+@keyframes receipt-sway {
+  from { transform: rotate(-.7deg); }
+  to   { transform: rotate(.8deg) translateY(1px); }
+}
+.receipt { transform-origin: 18% 0; animation: receipt-sway 6.2s ease-in-out -2.1s infinite alternate; }
+.sheet:not([data-state="front"]) .receipt { animation-play-state: paused; }
+.sheet-clone .receipt { animation: none; }   /* en el giro de la hoja no se mueve */
+@media (prefers-reduced-motion: reduce) { .receipt { animation: none; } }
 
 /* ---------- Pantalla de carga ---------- */
 .loader { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: #FFFFFF; transition: opacity .4s ease; }   /* #FFFFFF: el mismo blanco del dibujo */
