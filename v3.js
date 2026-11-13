@@ -331,8 +331,9 @@
     function total() { return items.reduce(function (a, i) { return a + i.q * i.p; }, 0); }
     function render() {
       var n = count();
-      el.hidden = n === 0;
-      if (!n) setOpen(false, true);
+      if (n === 0) { leave(); return; }      // al vaciarse, la orden se despide con animación (deja a la vista lo último que tenía)
+      cancelLeave();
+      el.hidden = false;
       countEl.textContent = n;
       sumEl.textContent = money(total());
       list.innerHTML = items.map(function (it, i) {
@@ -341,6 +342,34 @@
           '</b><button type="button" data-i="' + i + '" data-d="1" aria-label="Agregar uno de ' + it.n + '">+</button></span>' +
           '<span class="cart-line">' + money(it.q * it.p) + "</span></li>";
       }).join("");
+    }
+    // Salida al vaciar la orden: primero el recuadro se encoge hacia la bolsa y luego la bolsa se desvanece encogiéndose.
+    var leaving = false, leaveToken = 0;
+    function cancelLeave() {
+      if (!leaving) return;
+      leaving = false; leaveToken++;
+      if (bag.getAnimations) bag.getAnimations().forEach(function (a) { a.cancel(); });
+    }
+    function leave() {
+      if (el.hidden || leaving) return;
+      leaving = true;
+      var token = ++leaveToken;
+      function done() {
+        if (token !== leaveToken) return;
+        leaving = false;
+        if (bag.getAnimations) bag.getAnimations().forEach(function (a) { a.cancel(); });
+        setOpen(false, true);
+        el.hidden = true;
+        list.innerHTML = "";
+      }
+      if (reduce || !bag.animate) { done(); return; }
+      function bagOut() {
+        if (token !== leaveToken) return;
+        var a = bag.animate([{ transform: "scale(1)", opacity: 1 }, { transform: "scale(.25)", opacity: 0 }],
+          { duration: 260, easing: "cubic-bezier(.5,0,.8,.4)", fill: "forwards" });
+        a.onfinish = done;
+      }
+      if (!panel.hidden) { setOpen(false); setTimeout(bagOut, 300); } else bagOut();
     }
     // El panel se encoge hacia la bolsa al minimizar (como una ventana de iOS) y crece desde ella al abrir.
     var panelAnim = null;
@@ -521,8 +550,9 @@
   placeClip();
   requestAnimationFrame(function () { requestAnimationFrame(function () { document.body.classList.add("ready"); }); });
 
-  // ----- Inclinación (puntero / giroscopio) -----
-  var tx = 0, ty = 0, cx = 0, cy = 0, raf = null, gyro = false;
+  // ----- Inclinación (cursor en escritorio / movimiento del celular) -----
+  // En el celular se usa el giroscopio (necesita HTTPS; en iPhone pide permiso una vez). El dedo NO mueve el efecto.
+  var tx = 0, ty = 0, cx = 0, cy = 0, raf = null, gyro = false, asking = false, perm = "", orientEvents = 0, lastG = null, lastB = null;
   function clamp(v) { return Math.max(-1, Math.min(1, v)); }
   function frame() {
     cx += (tx - cx) * 0.08; cy += (ty - cy) * 0.08;
@@ -531,24 +561,50 @@
     raf = (Math.abs(tx - cx) > 0.002 || Math.abs(ty - cy) > 0.002) ? requestAnimationFrame(frame) : null;
   }
   function setTilt(x, y) { tx = clamp(x); ty = clamp(y); if (!raf) raf = requestAnimationFrame(frame); }
-  function onOrient(e) { if (e.gamma != null) setTilt(e.gamma / 25, (e.beta - 50) / 25); }
-  function askMotion() {
-    if (reduce || gyro || !window.DeviceOrientationEvent) return;
-    var DOE = window.DeviceOrientationEvent;
-    if (typeof DOE.requestPermission === "function") {
-      DOE.requestPermission().then(function (r) {
-        if (r === "granted") { gyro = true; window.addEventListener("deviceorientation", onOrient); }
-      }).catch(function () {});
-    } else { gyro = true; window.addEventListener("deviceorientation", onOrient); }
+  // Con el celular en la mano el movimiento natural es de unos pocos grados: se amplifica para que el efecto se note
+  // (el efecto completo se alcanza con ~12° de giro a los lados y ~14° de cabeceo respecto a sostenerlo a ~50°).
+  function onOrient(e) {
+    if (e.gamma == null) return;
+    orientEvents++; lastG = e.gamma; lastB = e.beta;
+    setTilt(e.gamma / 12, (e.beta - 50) / 14);
+    if (dbg) dbgShow();
   }
-  // Primer toque en cualquier parte: pide el permiso de movimiento (iOS lo exige tras un gesto del usuario)
+  function listenMotion() { gyro = true; document.documentElement.classList.add("gyro"); window.addEventListener("deviceorientation", onOrient); }
+  function askMotion() {
+    if (reduce || gyro || asking || !window.DeviceOrientationEvent) { if (dbg) dbgShow(); return; }
+    var DOE = window.DeviceOrientationEvent;
+    if (typeof DOE.requestPermission === "function") {          // iPhone / iPad
+      asking = true;
+      DOE.requestPermission().then(function (r) {
+        asking = false; perm = r;
+        if (r === "granted") listenMotion();
+        if (dbg) dbgShow();
+      }).catch(function (err) { asking = false; perm = "error: " + (err && err.message || err); if (dbg) dbgShow(); });
+    } else { perm = "no hace falta"; listenMotion(); if (dbg) dbgShow(); }
+  }
+  // El permiso se pide en el primer toque (iOS lo exige dentro de un gesto del usuario); si se negó, no se insiste.
   document.addEventListener("click", askMotion, { once: true });
+  document.addEventListener("touchend", askMotion, { once: true, passive: true });
   if (!reduce) {
     window.addEventListener("pointermove", function (e) {
+      if (e.pointerType === "touch") return;                      // el dedo no mueve el efecto
       setTilt((e.clientX / innerWidth - 0.5) * 2, (e.clientY / innerHeight - 0.5) * 2);
     }, { passive: true });
-    document.addEventListener("pointerleave", function () { setTilt(0, 0); });
+    document.addEventListener("pointerleave", function (e) { if (e.pointerType !== "touch") setTilt(0, 0); });
   }
+  // Diagnóstico opcional: agregar ?giro a la dirección muestra el estado del sensor en una esquina (para probar en el celular).
+  var dbg = null;
+  if (/[?&]giro\b/.test(location.search)) {
+    dbg = document.createElement("div");
+    dbg.style.cssText = "position:fixed;left:8px;top:8px;z-index:2000;padding:6px 8px;border-radius:6px;background:rgba(0,0,0,.75);color:#fff;font:12px/1.4 monospace;pointer-events:none;max-width:70vw";
+    document.body.appendChild(dbg);
+  }
+  function dbgShow() {
+    if (!dbg) return;
+    dbg.innerHTML = "https: " + window.isSecureContext + "<br>reducir movimiento: " + reduce + "<br>permiso: " + (perm || (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function" ? "pendiente (toca la pantalla)" : "sin pedir")) +
+      "<br>eventos: " + orientEvents + (lastG != null ? "<br>gamma " + lastG.toFixed(1) + " · beta " + (lastB == null ? "-" : lastB.toFixed(1)) : "");
+  }
+  if (dbg) dbgShow();
   // ----- Pantalla de carga: se quita cuando el sitio terminó de cargar -----
   // Se ve por lo menos un ciclo completo de la animación (1 s) y se retira al cerrar un ciclo; tope de 6 s por si algo tarda.
   (function loaderOff() {

@@ -42,7 +42,8 @@
   --ty: 0;
 }
 
-/* Andy: tipografía de los títulos. No trae í, ñ, Í ni ¡; esas letras salen de Darumadrop One (casi no se nota). */
+/* Andy: tipografía de los títulos. Autor: anlody (2014), descargada de DaFont (categoría "100% free").
+   No trae í, ñ, Í ni ¡; esas letras salen de Darumadrop One (casi no se nota). */
 @font-face { font-family: "Andy"; src: url("assets/andy/Andy.ttf") format("truetype"); font-display: swap; }
 
 * { box-sizing: border-box; }
@@ -77,6 +78,9 @@ body {
   transform: rotateX(calc(var(--ty) * -1.5deg)) rotateY(calc(var(--tx) * 2deg));
   transform-origin: 50% 0;
 }
+/* Con el movimiento del celular el efecto es más marcado que con el cursor (el teléfono se mueve poco) */
+html.gyro .stack { transform: rotateX(calc(var(--ty) * -3deg)) rotateY(calc(var(--tx) * 4deg)); }
+html.gyro .bg { transform: translate(calc(var(--tx) * -14px), calc(var(--ty) * -14px)); }
 
 /* Todas las hojas comparten la misma celda: la más larga define el alto de la página.
    El padding superior deja sitio a las lengüetas de las hojas que ya pasaste. */
