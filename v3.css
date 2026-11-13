@@ -1,0 +1,447 @@
+/* ---------- Tokens (reemplazar con el sistema de diseño de Bomo) ---------- */
+:root {
+  /* Paleta oficial de Bomo */
+  --rojo: #F22613;      /* el color más llamativo: lo importante (hoja de Temporada) */
+  --azul: #94BDF2;
+  --oscuro: #260202;    /* muy oscuro: texto y fondo; sustituye al negro */
+  --granate: #590505;   /* rojo profundo: fondo de la hoja de Bollería */
+  --vino: #580604;      /* color del logo y del texto sobre azul (casi idéntico a --granate) */
+  --crema: #FFFBF2;
+  --negro: #000000;     /* letra de las hojas Temporada, Bollería y Panes de mesa */
+
+  /* Tipografías: títulos de hoja en Andy (assets/andy; la í/ñ salen de Darumadrop One, que Andy no trae)
+     · DM Mono para el texto general y las pestañas. El logo va como archivo (assets/logo/logo.svg). */
+  --font-title: "Darumadrop One", cursive;
+  --font-text: "DM Mono", ui-monospace, "Courier New", monospace;
+
+  /* Jerarquía tipográfica (celular). Mínimo 12 px.
+     DM Mono solo tiene 3 pesos reales (300 · 400 · 500): el más fuerte es 500 (Medium).
+     500: nombre, precio, sección y pestañas · 400: descripción, "Menú" y tagline. */
+  --fs-group: 13px;   /* 3 · sección, dentro de una píldora · 500 · mayúsculas */
+  --fs-item: 15px;    /* 4 · nombre y precio                 · 500 · mayúsculas */
+  --fs-desc: 14px;    /* 5 · descripción (si aplica)         · 400 · minúsculas */
+  --fs-label: 12px;   /* 6 · "Menú" y tagline (400) */
+  --w-regular: 400;   /* cámbialo a 300 si prefieres la descripción más fina */
+  --w-semibold: 500;  /* el peso más fuerte real de DM Mono (Medium) */
+  --line: 1px;        /* grosor de la línea que subraya cada renglón */
+
+  --fondo: var(--oscuro);
+
+  /* Imagen de fondo: la pone v3.js si existe assets/fondo/fondo.jpg */
+  --bg-image: none;
+  --bg-opacity: 0.22;
+
+  /* Zonas táctiles (UX): mínimo recomendado ≈ 44 px. Las lengüetas de arriba son muy anchas, así que
+     tienen los 44 px de alto; las franjas de la derecha son muy largas, así que 36 px de ancho. */
+  --S: 36px;    /* ancho de la franja vertical que asoma de cada hoja de atrás */
+  --P: 44px;    /* alto de cada lengüeta de hojas ya pasadas (separación entre ellas) */
+  --sl: 45px;   /* alto real de la lengüeta: 1 px más que --P, así la última se pega a la pila sin hueco */
+  --fs-tab: 13px;     /* pestañas (Datatype bold, mayúsculas) */
+
+  --tx: 0;      /* los actualiza el script al inclinar */
+  --ty: 0;
+}
+
+/* Andy: tipografía de los títulos. No trae í, ñ, Í ni ¡; esas letras salen de Darumadrop One (casi no se nota). */
+@font-face { font-family: "Andy"; src: url("assets/andy/Andy.ttf") format("truetype"); font-display: swap; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-synthesis: none;   /* nada de negritas falsas: solo los pesos reales de cada fuente */
+  font-family: var(--font-text);
+  color: var(--oscuro);
+  background: var(--fondo);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.bg {
+  position: fixed; inset: -4%; z-index: -1; background: var(--fondo);
+  transform: translate(calc(var(--tx) * -10px), calc(var(--ty) * -10px));
+  transition: transform .2s ease-out;
+}
+.bg::before {
+  content: ""; position: absolute; inset: 0;
+  background: var(--bg-image) center / cover no-repeat; opacity: var(--bg-opacity);
+}
+
+/* ---------- Escena: el scroll es el de la página ---------- */
+.scene {
+  --top-space: 108px;   /* espacio sobre el menú: aquí asoma la parte superior del clip */
+  display: flex; justify-content: center; padding: var(--top-space) 20px calc(60px + env(safe-area-inset-bottom)); overflow: hidden;   /* a los lados queda borde */
+}
+.stack {
+  --turned: 0;            /* cuántas hojas ya pasaron (las pone script.js); lo heredan hojas y clip */
+  position: relative; width: 100%; max-width: 480px;
+  transform: rotateX(calc(var(--ty) * -1.5deg)) rotateY(calc(var(--tx) * 2deg));
+  transform-origin: 50% 0;
+}
+
+/* Todas las hojas comparten la misma celda: la más larga define el alto de la página.
+   El padding superior deja sitio a las lengüetas de las hojas que ya pasaste. */
+.sheets {
+  display: grid;
+  padding-top: calc(var(--turned) * var(--P));
+}
+.ready .sheets { transition: padding-top .3s cubic-bezier(.3,.7,.2,1); }
+.ready .clip   { transition: top .3s cubic-bezier(.3,.7,.2,1); }   /* mismo ritmo que la pila */
+.clip.clip-in  { animation: clipIn .22s ease-out; }
+@keyframes clipIn { from { opacity: 0; } }
+
+/* ---------- Hojas: cada una con su ancho y su margen ---------- */
+.sheet {
+  --i: 0; --r: 0deg; --m: 22px;
+  --rest: rotate(var(--r));
+  grid-area: 1 / 1; align-self: start;
+  position: relative;
+  width: calc(100% - (3 - var(--i)) * var(--S));
+  z-index: calc((10 - var(--i)) * 2);     /* el doble: deja un nivel libre para el clip entre hojas */
+  background: var(--c) var(--tex, none) top center / cover no-repeat; color: var(--fg);
+  border-radius: 2px 4px 4px 2px;
+  box-shadow:
+    0 0 0 .5px rgba(0,0,0,.12),
+    0 1px 2px rgba(30,10,6,.25),
+    calc(var(--tx) * -6px + 2px) calc(var(--ty) * -3px + 8px) 18px rgba(30,10,6,.22),
+    calc(var(--tx) * -14px + 4px) 26px 44px rgba(30,10,6,.18);
+  transform: var(--rest);
+  transform-origin: 50% 0;
+  backface-visibility: hidden;
+}
+.ready .sheet { transition: transform .65s cubic-bezier(.3,.7,.2,1); }
+/* De adelante hacia atrás: portada → temporada → bollería → panes de mesa.
+   Más contenido = más ancha y con más margen. */
+/* Pares de color (fondo de la hoja → color de letra):
+     portada   azul    → vino  (#580604)
+     Temporada rojo    → crema         (la hoja más llamativa y la más corta)
+     Bollería  granate → crema
+     Panes de mesa crema → rojo
+   --soft: 100 % = el texto de apoyo (descripciones, secciones) va a color pleno, sin suavizar. */
+.sheet[data-i="0"] { --c: var(--granate); --fg: var(--crema); --m: 20px; --r: 0deg;    --soft: 100%; --tex: url("assets/texturas/textura_portada-web.jpg"); }
+.sheet[data-i="1"] { --c: var(--azul);    --fg: var(--negro); --m: 22px; --r: .3deg;   --soft: 100%; --tex: url("assets/texturas/textura_temporada-web.jpg"); --acc: var(--vino); }
+.sheet[data-i="2"] { --c: var(--crema);   --fg: var(--negro); --m: 28px; --r: -.3deg;  --soft: 100%; --tex: url("assets/texturas/textura_bolleria-web.jpg"); }
+.sheet[data-i="3"] { --c: #E1E8CB;        --fg: var(--negro); --m: 36px; --r: .4deg;   --soft: 100%; --tex: url("assets/texturas/textura_mesa-web.jpg"); }
+/* --acc: color de acento de la hoja (título y subtítulos con su círculo). Rojo vivo salvo en Temporada, que va en #580604. */
+
+/* Recibo arrugado: esquinado a la izquierda como las hojas, con su borde superior a la altura del de la portada (el clip lo sujeta) y DEBAJO del post-it (va antes en el HTML; la sombra ya viene dentro de la imagen) */
+.receipt {
+  /* Lo más grande posible: casi todo el ancho de la portada, pero sin pasarse de ella y sin llegar al logo vertical.
+     El alto disponible = alto de la portada − logo (84cqw) − un pequeño margen (la esquina inferior derecha del recibo queda más arriba que la izquierda por la inclinación); la imagen mide 1.497 de alto por 1 de ancho. */
+  --rw: min(106%, calc((100svh - 168px - 24px - 84cqw) / 1.497));
+  position: absolute; width: var(--rw); left: calc(var(--rw) * -.038); top: -12px; height: auto; pointer-events: none; -webkit-user-select: none; user-select: none; }
+
+/* Post-it "muy pronto": pegado en la portada, en rojo vivo */
+.postit {
+  position: absolute; left: 0; top: 0; width: 64%; max-width: 190px;
+  padding: 36px var(--m) 14px; color: var(--crema);   /* los 36 px de arriba quedan bajo el broche, que baja unos 20 px dentro de la hoja */
+  background: var(--rojo) url("assets/texturas/textura_pronto-web.jpg") center / cover;
+  border-radius: 2px 2px 3px 2px; transform: rotate(-.4deg); transform-origin: 0 0;
+  /* pegado, no flotando: sombra mínima y pegada al borde, casi solo una línea de contacto */
+  box-shadow: 0 .5px 1px rgba(20,4,2,.38), 0 1.5px 3px rgba(20,4,2,.2);
+}
+/* Integración con la portada: las manchas y el grano de la portada se multiplican sobre el post-it,
+   y una franja de pegamento un poco más oscura arriba; así parece papel pegado sobre la misma portada. */
+.postit::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; border-radius: inherit;
+  background:
+    linear-gradient(180deg, rgba(60,5,5,.08), rgba(60,5,5,0) 30px),
+    url("assets/texturas/textura_portada-web.jpg") 0 0 / 560px auto;
+  mix-blend-mode: multiply; opacity: .18;
+}
+.postit > * { position: relative; z-index: 1; }
+.postit-tag { display: inline-block; padding: 2px 6px 1px; font: var(--w-regular) 11px/1.15 var(--font-text); letter-spacing: .06em; text-transform: uppercase; border: 1.5px solid currentColor; border-radius: 999px; }
+.postit-name { margin-top: 12px; padding-bottom: 3px; border-bottom: var(--line) solid currentColor; font: var(--w-semibold) 14px/1.15 var(--font-text); text-transform: uppercase; }
+.postit-d { margin: 4px 0 0; font: var(--w-regular) 12px/1.3 var(--font-text); }
+
+/* Hojas ya pasadas: cuelgan arriba y solo asoma su borde inferior */
+.sheet[data-state="turned"] {
+  --rest: translateY(calc(-100% - (var(--turned) - var(--i)) * var(--P) + var(--sl)));
+}
+
+/* Luz suave en los bordes: el papel no es un bloque plano */
+.sheet::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 2;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.07), rgba(0,0,0,0) 5%, rgba(0,0,0,0) 92%, rgba(0,0,0,.05)),
+    linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0) 14%, rgba(0,0,0,0) 85%, rgba(0,0,0,.05));
+}
+
+/* ---------- Giro de hoja ----------
+   Mientras una hoja gira, script.js la reemplaza por una "plataforma" de tiras
+   que se curvan (la hoja se dobla como papel de verdad). */
+.sheet.in-flight { visibility: hidden; }
+.sheet.no-tr { transition: none !important; }
+.sheet.reveal { animation: reveal .12s ease-out; }
+@keyframes reveal { from { opacity: 0; } }
+.sheet.settle { animation: settle .38s ease-out; }
+@keyframes settle {          /* pequeño vaivén al quedar al frente */
+  0%   { transform: rotate(var(--r)) rotateX(-1.4deg); }
+  35%  { transform: rotate(var(--r)) rotateX(.7deg); }
+  65%  { transform: rotate(var(--r)) rotateX(-.25deg); }
+  100% { transform: rotate(var(--r)); }
+}
+
+.rig { grid-area: 1 / 1; align-self: start; position: relative; -webkit-transform-style: preserve-3d; transform-style: preserve-3d; transform-origin: 50% 0; pointer-events: none; }
+.rig-shadow {
+  position: absolute; inset: 0; border-radius: 2px 4px 4px 2px; transform: translateZ(-1px);
+  box-shadow:
+    0 1px 2px rgba(30,10,6,.25),
+    calc(var(--tx) * -6px + 2px) calc(var(--ty) * -3px + 8px) 18px rgba(30,10,6,.22),
+    calc(var(--tx) * -14px + 4px) 26px 44px rgba(30,10,6,.18);
+}
+.rig .seg { position: absolute; left: 0; top: 0; width: 100%; overflow: hidden; transform-origin: 50% 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; will-change: transform; }
+.rig .seg.back { pointer-events: none; }
+.rig .shade { position: absolute; inset: 0; z-index: 5; background: var(--oscuro); opacity: 0; pointer-events: none; }
+.sheet-clone { position: absolute !important; left: 0; box-shadow: none !important; transform: none !important; animation: none !important; z-index: auto !important; visibility: visible !important; }
+.sheet-clone, .sheet-clone * { transition: none !important; }
+.sheet-clone .tab-label { position: relative !important; top: 0 !important; }
+
+/* ---------- Etiquetas ---------- */
+.tab {
+  position: absolute; display: flex; cursor: pointer; outline: none;
+  -webkit-tap-highlight-color: transparent; transition: opacity .25s;
+}
+.tab-label { font: var(--w-semibold) var(--fs-tab)/1 var(--font-text); letter-spacing: .08em; text-transform: uppercase; }
+.tab:hover { opacity: .65; }
+.tab:focus-visible .tab-label { outline: 2px solid currentColor; outline-offset: 4px; }
+
+/* hoja de atrás: franja vertical a la derecha; la etiqueta te sigue al hacer scroll */
+.sheet[data-state="behind"] .tab { right: 0; top: 0; bottom: 0; width: var(--S); justify-content: center; align-items: flex-start; }
+.sheet[data-state="behind"] .tab-label { position: sticky; top: 20px; margin-top: 20px; writing-mode: vertical-rl; }
+
+/* hoja ya pasada: lengüeta horizontal en su borde inferior */
+.sheet[data-state="turned"] .tab { left: 0; right: 0; bottom: 0; height: var(--sl); align-items: center; padding-left: var(--m); }
+
+/* hoja al frente: sin etiqueta */
+.sheet[data-state="front"] .tab { opacity: 0; pointer-events: none; }
+
+/* ---------- Contenido ---------- */
+.body {
+  position: relative; z-index: 1;
+  padding: calc(var(--m) * 1.6) var(--m) calc(var(--m) * 1.5);
+  opacity: 0; transition: opacity .18s ease-out;
+}
+.sheet[data-state="front"] .body { opacity: 1; transition-duration: .3s; transition-delay: .1s; }
+
+/* Al aterrizar una hoja que baja, su texto aparece con un fundido corto */
+.sheet.text-in .body { animation: textIn .3s ease-out both; }
+@keyframes textIn { from { opacity: 0; } }
+
+/* Texto de apoyo en un color sólido (sin transparencia): 80 % del color del texto sobre el de la hoja */
+.body { --fg-soft: color-mix(in srgb, var(--fg) var(--soft, 88%), var(--c)); }
+
+.title { margin: 0; font: 400 44px/.95 "Andy", var(--font-title); letter-spacing: 0; font-synthesis: none; color: var(--acc, var(--rojo)); }
+
+.group { margin-top: 34px; }
+.group:first-of-type { margin-top: 28px; }
+/* Sección dentro de una píldora de esquinas redondeadas */
+.group h3 {
+  --pill-x: 6px;   /* margen interno lateral de la píldora (casi al ras del texto) */
+  --pill-y: 2px;   /* margen interno arriba y abajo */
+  display: inline-block; margin: 0 0 14px;
+  /* a la derecha se resta el espacio que el espaciado entre letras deja tras la última letra */
+  padding: var(--pill-y) calc(var(--pill-x) - .06em) calc(var(--pill-y) - 1px) var(--pill-x);
+  font: var(--w-regular) var(--fs-group)/1.15 var(--font-text);   /* más ligera que los nombres */
+  color: var(--acc, var(--rojo));   /* texto y círculo (el borde hereda el color) */
+  letter-spacing: .06em; text-transform: uppercase;
+  border: 1.5px solid currentColor; border-radius: 999px;
+}
+.items { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+
+/* NOMBRE                    $PRECIO
+   ───────────────────────────────  una línea subraya todo el renglón, del inicio del nombre al final del precio */
+.row { display: flex; align-items: baseline; align-items: last baseline; gap: 8px; padding-bottom: 3px; border-bottom: var(--line) solid currentColor; }
+.name  { font: var(--w-semibold) var(--fs-item)/1.15 var(--font-text); letter-spacing: 0; text-transform: uppercase; }
+.dots  { flex: 1; min-width: 10px; height: 0; }   /* solo separa el nombre del precio */
+.price { font: var(--w-semibold) var(--fs-item)/1.15 var(--font-text); font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+.desc  { margin: 3px 0 0; font: var(--w-regular) var(--fs-desc)/1.3 var(--font-text); color: var(--fg-soft); }
+
+/* ---------- Portada ---------- */
+.body.cover {
+  min-height: calc(100svh - var(--top-space) - 60px);
+  container-type: inline-size;
+}
+/* "Menú" abajo a la izquierda; el logo, pequeño y en vertical, abajo a la derecha */
+.cover-top { position: absolute; left: var(--m); bottom: var(--m); font: 400 var(--fs-label)/1 var(--font-text); letter-spacing: .16em; text-transform: uppercase; }
+/* Logo (assets/logo/logo.svg): se pinta con el color de letra de la portada, sea cual sea su color original.
+   Va definido aquí (no por JavaScript) para que se vea desde el primer instante, sin flash de texto. */
+.logo.logo-img {
+  --logo-url: url("assets/logo/logo.svg"); --logo-ratio: 372 / 98;   /* medidas de logo.svg: si cambias el logo, cámbialas aquí y en --logo-ratio-n */
+  margin: 0; width: 100%; aspect-ratio: var(--logo-ratio, 3 / 1);
+  font-size: 0; line-height: 0; color: transparent;          /* el texto queda solo para lectores de pantalla */
+  background-color: var(--fg);
+  -webkit-mask: var(--logo-url) left bottom / contain no-repeat;
+          mask: var(--logo-url) left bottom / contain no-repeat;
+}
+/* Girado 90°: la caja mide 22cqw de grueso por 22cqw × proporción del logo de largo (--logo-ratio-n = 372 / 98) */
+.cover-logo { --logo-ratio-n: 3.7959; position: absolute; right: var(--m); bottom: var(--m); width: 22cqw; height: calc(22cqw * var(--logo-ratio-n, 3.8)); }
+.cover-logo .logo { position: absolute; top: 0; left: 100%; width: calc(22cqw * var(--logo-ratio-n, 3.8)); transform-origin: 0 0; transform: rotate(90deg); }
+
+/* ---------- Productos tocables: el pan salta sobre un fondo borroso ---------- */
+.item.has-view { cursor: pointer; -webkit-tap-highlight-color: transparent; outline: none; }
+.item.has-view:focus-visible .row { outline: 2px solid currentColor; outline-offset: 3px; }
+.hint { margin: 10px 0 0; font: var(--w-regular) var(--fs-desc)/1.3 var(--font-text); }   /* explicación bajo el título */
+
+.viewer { position: fixed; inset: 0; z-index: 200; }
+.viewer[hidden] { display: none; }
+.viewer-veil {
+  position: absolute; inset: 0; background: rgba(38,2,2,.4);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  opacity: 0; transition: opacity .25s ease-out;
+}
+.viewer.open .viewer-veil { opacity: 1; }
+.viewer-main { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px calc(30px + env(safe-area-inset-bottom)); }
+.viewer-stage { position: relative; width: min(72vw, 340px); aspect-ratio: 1; display: grid; place-items: center; }
+.viewer-img, .viewer-ph { grid-area: 1 / 1; width: 100%; height: 100%; opacity: 0; transform: translateY(46px) scale(.5) rotate(-10deg); }
+.viewer-img { display: block; object-fit: contain; filter: drop-shadow(0 18px 22px rgba(10,1,1,.5)); }
+.viewer-img[hidden], .viewer-ph[hidden] { display: none; }
+.viewer-ph { border-radius: 50%; background: #FFD65C; box-shadow: 0 18px 22px rgba(10,1,1,.35); }   /* provisional, hasta que exista el PNG del pan */
+.viewer.open.loaded .viewer-img, .viewer.open.loaded .viewer-ph { animation: pan-pop .6s cubic-bezier(.2,1.35,.4,1) both; }
+@keyframes pan-pop {
+  0%   { opacity: 0; transform: translateY(46px) scale(.5) rotate(-10deg); }
+  60%  { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+.viewer:not(.open) .viewer-img, .viewer:not(.open) .viewer-ph { transition: opacity .2s, transform .2s; opacity: 0; transform: scale(.85); }
+.viewer-x {
+  position: absolute; top: -14px; right: -24px; width: 44px; height: 44px; padding: 0; border: 0; background: none;
+  color: var(--crema); font: 200 34px/1 var(--font-text); cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.viewer-x:focus-visible { outline: 2px solid var(--crema); outline-offset: 2px; border-radius: 50%; }
+.viewer-info { width: min(72vw, 340px); margin-top: 28px; color: var(--crema); text-align: left; opacity: 0; transform: translateY(10px); transition: opacity .3s .15s, transform .3s .15s; }
+.viewer.open.loaded .viewer-info { opacity: 1; transform: none; }
+.viewer-row { display: flex; align-items: baseline; gap: 12px; padding-bottom: 4px; border-bottom: var(--line) solid currentColor; }
+.viewer-name { flex: 1; font: var(--w-semibold) 16px/1.15 var(--font-text); text-transform: uppercase; }
+.viewer-price { font: var(--w-semibold) 16px/1.15 var(--font-text); font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+.viewer-desc { margin: 7px 0 0; font: var(--w-regular) 14px/1.35 var(--font-text); }
+.viewer-add {
+  display: block; margin: 20px auto 0; padding: 13px 22px 12px; border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--rojo); color: var(--crema); font: var(--w-semibold) 13px/1 var(--font-text); letter-spacing: .08em; text-transform: uppercase;
+  -webkit-tap-highlight-color: transparent;
+}
+.viewer-add:disabled { opacity: .7; cursor: default; }
+.viewer-add:focus-visible { outline: 2px solid var(--crema); outline-offset: 3px; }
+.viewer-on { overflow: hidden; }
+
+/* ---------- Orden (bolsa abajo a la derecha, minimizable) ---------- */
+.cart { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 250; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.cart[hidden] { display: none; }
+.cart-bag {
+  position: relative; width: 56px; height: 56px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 50%; cursor: pointer;
+  background: var(--rojo); color: var(--crema); box-shadow: 0 2px 4px rgba(20,4,2,.35), 0 8px 16px rgba(20,4,2,.3); -webkit-tap-highlight-color: transparent;
+}
+.cart-bag:focus-visible { outline: 2px solid var(--crema); outline-offset: 3px; }
+.cart-count {
+  position: absolute; top: -4px; right: -4px; min-width: 22px; height: 22px; padding: 0 5px; display: grid; place-items: center; border-radius: 999px;
+  background: var(--crema); color: var(--negro); font: var(--w-semibold) 12px/1 var(--font-text); font-variant-numeric: tabular-nums;
+}
+.cart-panel {
+  transform-origin: 100% 100%;   /* la animación de minimizar apunta a la bolsa */
+  width: min(340px, calc(100vw - 32px)); max-height: 64svh; overflow: auto; padding: 16px 16px 14px; border-radius: 3px;
+  background: var(--crema); color: var(--negro); box-shadow: 0 2px 4px rgba(20,4,2,.3), 0 12px 28px rgba(20,4,2,.35);
+  overscroll-behavior: contain;
+}
+.cart-panel[hidden] { display: none; }
+.cart-head { display: flex; align-items: center; justify-content: space-between; }
+.cart-head h2 { margin: 0; font: 400 28px/1 "Andy", var(--font-title); color: var(--rojo); }
+.cart-min { width: 40px; height: 40px; margin-right: -8px; border: 0; background: none; color: var(--negro); font: 300 26px/1 var(--font-text); cursor: pointer; }
+.cart-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.cart-item { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; padding: 8px 0; border-bottom: var(--line) solid rgba(0,0,0,.35); }
+.cart-name { font: var(--w-semibold) 13px/1.2 var(--font-text); text-transform: uppercase; }
+.cart-qty { display: inline-flex; align-items: center; gap: 2px; }
+.cart-qty button { width: 32px; height: 32px; padding: 0; border: 1.5px solid var(--rojo); border-radius: 50%; background: none; color: var(--rojo); font: 400 18px/1 var(--font-text); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.cart-qty b { min-width: 22px; text-align: center; font: var(--w-semibold) 14px/1 var(--font-text); }
+.cart-line { min-width: 46px; text-align: right; font: var(--w-semibold) 13px/1 var(--font-text); font-variant-numeric: lining-nums tabular-nums; }
+.cart-total { display: flex; justify-content: space-between; margin-top: 12px; font: var(--w-semibold) 15px/1 var(--font-text); text-transform: uppercase; }
+.cart-note { display: block; margin-top: 14px; font: var(--w-regular) 12px/1.3 var(--font-text); }
+.cart-note textarea { display: block; width: 100%; margin-top: 5px; padding: 8px; resize: none; border: var(--line) solid rgba(0,0,0,.4); border-radius: 2px; background: transparent; color: var(--negro); font: var(--w-regular) 13px/1.3 var(--font-text); }
+.cart-send { display: block; width: 100%; margin-top: 14px; padding: 13px 16px 12px; border: 0; border-radius: 999px; cursor: pointer; background: var(--rojo); color: var(--crema); font: var(--w-semibold) 13px/1 var(--font-text); letter-spacing: .08em; text-transform: uppercase; -webkit-tap-highlight-color: transparent; transition: transform .12s; }
+.cart-send:active { transform: scale(.97); }
+.cart-clear { display: block; margin: 10px auto 0; padding: 6px; border: 0; background: none; color: var(--negro); font: var(--w-regular) 12px/1 var(--font-text); text-decoration: underline; cursor: pointer; opacity: .7; }
+@media (prefers-reduced-motion: reduce) {
+  .viewer.open.loaded .viewer-img, .viewer.open.loaded .viewer-ph { animation: none; opacity: 1; transform: none; }
+  .viewer-veil, .viewer-info { transition: none; }
+}
+
+/* ---------- Solo escritorio / tableta ancha (>= 720 px): recibo más grande, casi al ras del logo ----------
+   Aquí sobra ancho: el recibo crece hasta quedar a ~10 px del logo vertical (su borde derecho visible mide 0.924 de la imagen)
+   y sin bajar hasta "Menú" (abajo a la izquierda). */
+@media (min-width: 720px) {
+  .receipt { --rw: min(106%, calc((100% - var(--m) - 22cqw - 10px) / .924), calc((100svh - 168px - var(--m) - 60px) / 1.497)); }
+}
+
+/* ---------- Solo celular (< 720 px): recibo un poco más grande y "Rosca de Reyes" del post-it en una sola línea ---------- */
+@media (max-width: 719.98px) {
+  /* menos reserva sobre el logo (la esquina inferior derecha del recibo queda más arriba que la izquierda por la inclinación) */
+  .receipt { --rw: min(106%, calc((100svh - 168px - 4px - 84cqw) / 1.497)); top: 2px; }   /* top: 2px = 14 px más abajo que en escritorio (-12px) */
+  .postit { width: 66%; max-width: 200px; padding: 36px 14px 14px; }
+  /* la letra se ajusta al ancho del post-it (cqw mide la portada sin sus márgenes interiores, de ahí el + 1.32 × --m) */
+  .postit-name { white-space: nowrap; font-size: min(14px, calc((66cqw + 1.32 * var(--m) - 28px) / 8.7)); }
+}
+
+/* ---------- Pantalla de carga ---------- */
+.loader { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: #FFFFFF; transition: opacity .4s ease; }   /* #FFFFFF: el mismo blanco del dibujo */
+.loader.done { opacity: 0; pointer-events: none; }
+/* hoja de 18 cuadros (6 columnas x 3 filas) que se recorre con steps: 1 segundo por vuelta, en bucle */
+.loader-anim {
+  width: min(64vw, 300px); aspect-ratio: 1;
+  background: url("assets/animaciones/carga-sprite.webp") 0 0 / 600% 300% no-repeat;
+  animation: carga 1s steps(1, end) infinite;
+}
+@media (prefers-reduced-motion: reduce) { .loader-anim { animation: none; } }   /* queda el primer cuadro quieto */
+@keyframes carga {
+  0.000% { background-position: 0% 0%; }
+  5.556% { background-position: 20% 0%; }
+  11.111% { background-position: 40% 0%; }
+  16.667% { background-position: 60% 0%; }
+  22.222% { background-position: 80% 0%; }
+  27.778% { background-position: 100% 0%; }
+  33.333% { background-position: 0% 50%; }
+  38.889% { background-position: 20% 50%; }
+  44.444% { background-position: 40% 50%; }
+  50.000% { background-position: 60% 50%; }
+  55.556% { background-position: 80% 50%; }
+  61.111% { background-position: 100% 50%; }
+  66.667% { background-position: 0% 100%; }
+  72.222% { background-position: 20% 100%; }
+  77.778% { background-position: 40% 100%; }
+  83.333% { background-position: 60% 100%; }
+  88.889% { background-position: 80% 100%; }
+  94.444% { background-position: 100% 100%; }
+}
+html.loading { overflow: hidden; }
+
+/* ---------- Clip (PNG real en assets/clip/) ---------- */
+.clip {
+  /* Va anclado al borde superior de la pila (la última hoja): baja y sube con ella, y las hojas
+     ya pasadas (z mayor, fijado por script.js) lo tapan; solo asoma el borde de abajo. */
+  /* clip2: más largo, pegado al borde izquierdo de las hojas. Su barra inferior (≈77 % del alto)
+     queda centrada sobre el borde superior de la pila. */
+  position: absolute; z-index: 21; left: 0;
+  top: calc(var(--turned) * var(--P) - 92px);
+  width: 156px; height: auto;
+  transform: rotate(-2deg); transform-origin: 50% 77%; pointer-events: none;
+  filter: drop-shadow(2px 5px 3px rgba(20,6,3,.45)) drop-shadow(0 1px 1px rgba(20,6,3,.35));
+}
+
+@media (min-width: 720px) {
+  :root { --fs-item: 17px; --fs-desc: 15px; }
+  .sheet[data-i="0"] { --m: 30px; }
+  .sheet[data-i="1"] { --m: 36px; }
+  .sheet[data-i="2"] { --m: 44px; }
+  .sheet[data-i="3"] { --m: 54px; }
+}
+
+/* Celulares angostos (≤ 365 px, p. ej. 360 y 320): letra y márgenes un poco menores para que los nombres no se partan */
+@media (max-width: 365px) {
+  :root { --fs-item: 14px; --fs-desc: 13px; }
+  .scene { padding-left: 14px; padding-right: 14px; }
+  .name { letter-spacing: .02em; }
+  .sheet[data-i="1"] { --m: 16px; }
+  .sheet[data-i="2"] { --m: 20px; }
+  .sheet[data-i="3"] { --m: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stack, .bg, .sheet, .sheets, .body { transition: none; }
+}

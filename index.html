@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es" class="loading">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#260202">
+  <title>Bomo · Menú</title>
+  <meta name="description" content="Menú digital de Bomo: panes de mesa, bollería y panes de temporada.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="preload" as="image" href="assets/animaciones/carga-sprite.webp">   <!-- la hoja de la animación de carga empieza a bajar de inmediato -->
+  <link rel="stylesheet" href="v3.css">
+</head>
+<body>
+  <!-- Pantalla de carga: animación en bucle (fondo blanco, igual al del dibujo) hasta que el menú está listo.
+       Es una hoja de 18 cuadros animada con CSS: se reproduce sola en cualquier celular (un <video> puede pedir tocar "play"). -->
+  <div class="loader" id="loader" role="status" aria-label="Cargando el menú">
+    <div class="loader-anim" aria-hidden="true"></div>
+  </div>
+
+  <div class="bg" aria-hidden="true"></div>
+
+  <main class="scene">
+    <div class="stack" id="stack">
+      <div class="sheets" id="sheets" role="tablist" aria-label="Secciones del menú"></div>
+    </div>
+  </main>
+
+  <script src="data.js"></script>
+  <script src="v3.js"></script>
+</body>
+</html>
