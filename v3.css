@@ -78,9 +78,6 @@ body {
   transform: rotateX(calc(var(--ty) * -1.5deg)) rotateY(calc(var(--tx) * 2deg));
   transform-origin: 50% 0;
 }
-/* Con el movimiento del celular el efecto es más marcado que con el cursor (el teléfono se mueve poco) */
-html.gyro .stack { transform: rotateX(calc(var(--ty) * -3deg)) rotateY(calc(var(--tx) * 4deg)); }
-html.gyro .bg { transform: translate(calc(var(--tx) * -14px), calc(var(--ty) * -14px)); }
 
 /* Todas las hojas comparten la misma celda: la más larga define el alto de la página.
    El padding superior deja sitio a las lengüetas de las hojas que ya pasaste. */
