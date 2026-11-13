@@ -109,7 +109,7 @@ body {
   transform-origin: 50% 0;
   backface-visibility: hidden;
 }
-.ready .sheet { transition: transform .65s cubic-bezier(.3,.7,.2,1); }
+.ready .sheet { transition: transform .65s cubic-bezier(.3,.7,.2,1), translate .22s cubic-bezier(.3,.7,.2,1); }
 /* De adelante hacia atrás: portada → temporada → bollería → panes de mesa.
    Más contenido = más ancha y con más margen. */
 /* Pares de color (fondo de la hoja → color de letra):
@@ -203,7 +203,6 @@ body {
   -webkit-tap-highlight-color: transparent; transition: opacity .25s;
 }
 .tab-label { font: var(--w-semibold) var(--fs-tab)/1 var(--font-text); letter-spacing: .08em; text-transform: uppercase; }
-.tab:hover { opacity: .65; }
 .tab:focus-visible .tab-label { outline: 2px solid currentColor; outline-offset: 4px; }
 
 /* hoja de atrás: franja vertical a la derecha; la etiqueta te sigue al hacer scroll */
@@ -379,6 +378,24 @@ body {
   /* la letra se ajusta al ancho del post-it (cqw mide la portada sin sus márgenes interiores, de ahí el + 1.32 × --m) */
   .postit-name { white-space: nowrap; font-size: min(14px, calc((66cqw + 1.32 * var(--m) - 28px) / 8.7)); }
 }
+
+/* ---------- Hover (solo con cursor; en el celular no existe) ----------
+   · Pestañas: la hoja que se va a elegir sobresale. Las de atrás se asoman hacia la derecha; las que cuelgan arriba, hacia la izquierda.
+   · Productos: al pasar el cursor el renglón toma el color del título de la hoja, para que se note que es un botón. */
+@media (hover: hover) and (pointer: fine) {
+  .sheet[data-state="behind"]:has(.tab:hover) { translate: 10px 0; }
+  .sheet[data-state="turned"]:has(.tab:hover) { translate: -9px 0; }
+  .item.has-view, .item.has-view .desc { transition: color .15s ease; }
+  .item.has-view:hover, .item.has-view:hover .desc { color: var(--acc, var(--rojo)); }
+}
+
+/* ---------- Créditos (pie de la página) ---------- */
+.credits {
+  margin: -22px 0 0; padding: 0 24px calc(30px + env(safe-area-inset-bottom)); text-align: center;
+  font: var(--w-regular) 11px/1.6 var(--font-text); letter-spacing: .04em; color: rgba(255, 251, 242, .62);
+}
+.credits a { color: inherit; text-decoration: underline; text-underline-offset: 2px; text-decoration-color: rgba(255, 251, 242, .4); }
+@media (hover: hover) and (pointer: fine) { .credits a:hover { color: var(--crema); } }
 
 /* ---------- Pantalla de carga ---------- */
 .loader { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: #FFFFFF; transition: opacity .4s ease; }   /* #FFFFFF: el mismo blanco del dibujo */
